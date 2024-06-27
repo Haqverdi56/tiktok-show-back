@@ -31,10 +31,6 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(express.static('public'));
 app.use(express.json());
-app.use('/', function(req, res) {
-    res.send("Welcome to my API")
-});
-
 
 // MongoDB bağlantısı
 mongoose
@@ -65,9 +61,9 @@ tiktokLiveConnection
 
 app.post('/api/disconnect', (req, res) => {
 	tiktokLiveConnection
-		.on('disconnected', (actionId)=> {
+		.on('disconnected', (actionId) => {
 			console.log(actionId);
-			console.log("disconnect");
+			console.log('disconnect');
 		})
 		.then((resp) => console.log(resp))
 		.catch((err) =>
@@ -116,6 +112,10 @@ tiktokLiveConnection.on('gift', async (data) => {
 			console.log('Guest true');
 		}
 	}
+});
+
+app.use('/', function (req, res) {
+	res.send('Welcome to my API');
 });
 
 // Sunucuyu başlat
