@@ -31,6 +31,10 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(express.static('public'));
 app.use(express.json());
+app.use('/', function(req, res) {
+    res.send("Welcome to my API")
+});
+
 
 // MongoDB bağlantısı
 mongoose
