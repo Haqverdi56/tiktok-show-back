@@ -12,7 +12,7 @@ require('dotenv').config();
 
 // Canlı olan birinin kullanıcı adı
 // const tiktokUsername = 'olla_lazio29';
-const tiktokUsername = 'tt.shov';
+const tiktokUsername = 'bossladygiss';
 
 // Yeni bir bağlantı nesnesi oluştur ve kullanıcı adını geç
 let tiktokLiveConnection = new WebcastPushConnection(tiktokUsername);
@@ -42,6 +42,18 @@ mongoose
 // app.use(participantRoutes);
 app.use('/api', participantRoutes);
 
+app.post('/api/disconnect', (req, res) => {
+	tiktokLiveConnection
+		.on('disconnected', (actionId) => {
+			console.log(actionId);
+			console.log('disconnect');
+		})
+		.then((resp) => console.log(resp))
+		.catch((err) =>
+			res.status(500).send('TikTok canlı bağlantısı kapatılamadı')
+		);
+});
+
 // Socket.IO bağlantılarını dinle
 io.on('connection', (socket) => {
 	console.log('Tarayıcı bağlandı');
@@ -59,55 +71,46 @@ tiktokLiveConnection
 		console.error('Bağlantı başarısız', err);
 	});
 
-app.post('/api/disconnect', (req, res) => {
-	tiktokLiveConnection
-		.on('disconnected', (actionId) => {
-			console.log(actionId);
-			console.log('disconnect');
-		})
-		.then((resp) => console.log(resp))
-		.catch((err) =>
-			res.status(500).send('TikTok canlı bağlantısı kapatılamadı')
-		);
-});
-
 // Hediye olaylarını dinle ve tarayıcıya gönder
 
-let total = 0;
 tiktokLiveConnection.on('gift', async (data) => {
 	if (data.giftType === 1 && !data.repeatEnd) {
-		// console.log(
-		// 	`${data.uniqueId} is sending gift ${data.giftName} x${data.repeatCount}`
-		// );
+		// Skip temporary gifts
 	} else {
 		io.emit('gift', data); // Tüm bağlı istemcilere gönder
-
-		// Streak ended or non-streakable gift => process the gift with final repeat_count
 		console.log(
-			`${data.uniqueId} has sent gift ${data.giftName} count:${data.diamondCount} x${data.repeatCount} giftID: ${data.giftId}`
+			`${data.nickname} has sent gift ${data.giftName} count:${data.diamondCount} x${data.repeatCount} giftID: ${data.giftId}`
 		);
+
 		if (data.displayType != 'live_gift_send_message_to_guest') {
-			const participant = await Participant.findOne({ giftId: data.giftId });
+			try {
+				// MongoDB işlemi başlat
+				const session = await mongoose.startSession();
+				session.startTransaction();
 
-			if (participant) {
-				const response = await axios.patch(
-					`http://localhost:3000/api/participants/${participant._id}`,
-					{
-						score: data.diamondCount * data.repeatCount,
-					}
+				const participant = await Participant.findOneAndUpdate(
+					{ giftId: data.giftId },
+					{ $inc: { score: data.diamondCount * data.repeatCount } },
+					{ new: true, session: session }
 				);
 
-				console.log(
-					'Score updated:',
-					response.data.score,
-					' name:',
-					response.data.name
-				);
+				if (participant) {
+					console.log(
+						'Score updated:',
+						participant.score,
+						' name:',
+						participant.name
+					);
+				} else {
+					console.log('Participant not found for giftId:', data.giftId);
+				}
+
+				// İşlemi tamamla
+				await session.commitTransaction();
+				session.endSession();
+			} catch (error) {
+				console.error('Error updating participant score:', error);
 			}
-			console.log(
-				'Guest false',
-				(total += data.diamondCount * data.repeatCount)
-			);
 		} else {
 			console.log('Guest true');
 		}
