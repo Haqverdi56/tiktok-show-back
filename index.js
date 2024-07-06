@@ -12,7 +12,7 @@ require('dotenv').config();
 
 // Canlı olan birinin kullanıcı adı
 // const tiktokUsername = 'olla_lazio29';
-const tiktokUsername = 'bossladygiss';
+const tiktokUsername = 'gokboru_show';
 
 // Yeni bir bağlantı nesnesi oluştur ve kullanıcı adını geç
 let tiktokLiveConnection = new WebcastPushConnection(tiktokUsername);
@@ -73,6 +73,50 @@ tiktokLiveConnection
 
 // Hediye olaylarını dinle ve tarayıcıya gönder
 
+const MAX_RETRY_COUNT = 5; // Maksimum yeniden deneme sayısı
+
+async function updateParticipantScore(giftId, increment) {
+	for (let attempt = 0; attempt < MAX_RETRY_COUNT; attempt++) {
+		const session = await mongoose.startSession();
+		session.startTransaction();
+		try {
+			const participant = await Participant.findOneAndUpdate(
+				{ giftId: giftId },
+				{ $inc: { score: increment } },
+				{ new: true, session: session }
+			);
+
+			if (participant) {
+				console.log(
+					'Score updated:',
+					participant.score,
+					' name:',
+					participant.name
+				);
+			} else {
+				console.log('Participant not found for giftId:', giftId);
+			}
+
+			await session.commitTransaction();
+			session.endSession();
+			return; // Başarılı, fonksiyondan çık
+		} catch (error) {
+			await session.abortTransaction();
+			session.endSession();
+			if (attempt === MAX_RETRY_COUNT - 1) {
+				console.error(
+					'Error updating participant score after multiple attempts:',
+					error
+				);
+				throw error; // Maksimum deneme sayısına ulaşıldı, hatayı tekrar fırlat
+			}
+			console.warn(
+				`Retrying update for participant score, attempt ${attempt + 1}`
+			);
+		}
+	}
+}
+
 tiktokLiveConnection.on('gift', async (data) => {
 	if (data.giftType === 1 && !data.repeatEnd) {
 		// Skip temporary gifts
@@ -83,33 +127,11 @@ tiktokLiveConnection.on('gift', async (data) => {
 		);
 
 		if (data.displayType != 'live_gift_send_message_to_guest') {
+			const increment = data.diamondCount * data.repeatCount;
 			try {
-				// MongoDB işlemi başlat
-				const session = await mongoose.startSession();
-				session.startTransaction();
-
-				const participant = await Participant.findOneAndUpdate(
-					{ giftId: data.giftId },
-					{ $inc: { score: data.diamondCount * data.repeatCount } },
-					{ new: true, session: session }
-				);
-
-				if (participant) {
-					console.log(
-						'Score updated:',
-						participant.score,
-						' name:',
-						participant.name
-					);
-				} else {
-					console.log('Participant not found for giftId:', data.giftId);
-				}
-
-				// İşlemi tamamla
-				await session.commitTransaction();
-				session.endSession();
+				await updateParticipantScore(data.giftId, increment);
 			} catch (error) {
-				console.error('Error updating participant score:', error);
+				console.error('Failed to update participant score:', error);
 			}
 		} else {
 			console.log('Guest true');
