@@ -40,12 +40,14 @@ exports.duelActive = async (req, res) => {
 };
 
 exports.addParticipant = async (req, res) => {
-	const { name, giftId, score, img, gifts } = req.body;
-	const newParticipant = new Participant({ name, giftId, score, img, gifts });
+	const { name, isActive, giftId, score, img, gifts, duel } = req.body;
+	const newParticipant = new Participant({ name, isActive, giftId, score, img, gifts, duel });
 	try {
+		console.log("Succc")
 		await newParticipant.save();
 		res.status(201).send(newParticipant);
 	} catch (error) {
+		console.log("Errr");
 		res.status(400).send(error);
 	}
 };
