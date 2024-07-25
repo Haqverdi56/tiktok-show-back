@@ -11,7 +11,7 @@ const Participant = require('./models/Participant');
 require('dotenv').config();
 
 // Canlı olan birinin kullanıcı adı
-const tiktokUsername = 'versus7__';
+const tiktokUsername = 'adenmarcii';
 
 // Yeni bir bağlantı nesnesi oluştur ve kullanıcı adını geç
 let tiktokLiveConnection = new WebcastPushConnection(tiktokUsername);
@@ -42,15 +42,26 @@ mongoose
 app.use('/api', participantRoutes);
 
 app.post('/api/disconnect', (req, res) => {
+	try {
+		tiktokLiveConnection.disconnect();
+		res.status(200).send('Disconnect!');
+		console.log("diconnect!")
+	} catch (err) {
+		console.error('Error:', err);
+		res.status(500).send('Error disconnecting');
+	}
+});
+app.post('/api/connect', (req, res) => {
 	tiktokLiveConnection
-		.on('disconnected', (actionId) => {
-			console.log(actionId);
-			console.log('disconnect');
+		.connect()
+		.then((state) => {
+			console.info(`Oda Kimliği ${state.roomId} ile bağlandı`);
+			res.send(state.isConnected);
 		})
-		.then((resp) => console.log(resp))
-		.catch((err) =>
-			res.status(500).send('TikTok canlı bağlantısı kapatılamadı')
-		);
+		.catch((err) => {
+			console.error('Bağlantı başarısız', err);
+			res.send(err);
+		});
 });
 
 // Socket.IO bağlantılarını dinle
@@ -60,15 +71,6 @@ io.on('connection', (socket) => {
 		console.log('Tarayıcıdan gelen mesaj:', message);
 	});
 });
-
-tiktokLiveConnection
-	.connect()
-	.then((state) => {
-		console.info(`Oda Kimliği ${state.roomId} ile bağlandı`);
-	})
-	.catch((err) => {
-		console.error('Bağlantı başarısız', err);
-	});
 
 // Hediye olaylarını dinle ve tarayıcıya gönder
 
