@@ -11,7 +11,7 @@ const Participant = require('./models/Participant');
 require('dotenv').config();
 
 // Canlı olan birinin kullanıcı adı
-const tiktokUsername = 'adenmarcii';
+const tiktokUsername = '03.samo';
 
 // Yeni bir bağlantı nesnesi oluştur ve kullanıcı adını geç
 let tiktokLiveConnection = new WebcastPushConnection(tiktokUsername);
@@ -38,19 +38,18 @@ mongoose
 	.catch((err) => console.error('MongoDB bağlantısı hatası', err));
 
 // Routes
-// app.use(participantRoutes);
-app.use('/api', participantRoutes);
 
 app.post('/api/disconnect', (req, res) => {
 	try {
 		tiktokLiveConnection.disconnect();
 		res.status(200).send('Disconnect!');
-		console.log("diconnect!")
+		console.log('diconnect!');
 	} catch (err) {
 		console.error('Error:', err);
 		res.status(500).send('Error disconnecting');
 	}
 });
+
 app.post('/api/connect', (req, res) => {
 	tiktokLiveConnection
 		.connect()
@@ -140,6 +139,7 @@ tiktokLiveConnection.on('gift', async (data) => {
 	}
 });
 
+app.use('/api', participantRoutes);
 app.use('/', function (req, res) {
 	res.send('Welcome to my API');
 });
