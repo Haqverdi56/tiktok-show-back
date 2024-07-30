@@ -11,7 +11,7 @@ const Participant = require('./models/Participant');
 require('dotenv').config();
 
 // Canlı olan birinin kullanıcı adı
-const tiktokUsername = '03.samo';
+const tiktokUsername = 'paranoia.304';
 
 // Yeni bir bağlantı nesnesi oluştur ve kullanıcı adını geç
 let tiktokLiveConnection = new WebcastPushConnection(tiktokUsername);
@@ -38,6 +38,7 @@ mongoose
 	.catch((err) => console.error('MongoDB bağlantısı hatası', err));
 
 // Routes
+
 
 app.post('/api/disconnect', (req, res) => {
 	try {
@@ -73,7 +74,7 @@ io.on('connection', (socket) => {
 
 // Hediye olaylarını dinle ve tarayıcıya gönder
 
-const MAX_RETRY_COUNT = 5; // Maksimum yeniden deneme sayısı
+const MAX_RETRY_COUNT = 6; // Maksimum yeniden deneme sayısı
 
 async function updateParticipantScore(giftId, increment) {
 	for (let attempt = 0; attempt < MAX_RETRY_COUNT; attempt++) {
