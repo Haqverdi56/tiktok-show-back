@@ -11,7 +11,7 @@ const Participant = require('./models/Participant');
 require('dotenv').config();
 
 // Canlı olan birinin kullanıcı adı
-const tiktokUsername = 'paranoia.304';
+const tiktokUsername = 'lider.shov';
 
 // Yeni bir bağlantı nesnesi oluştur ve kullanıcı adını geç
 let tiktokLiveConnection = new WebcastPushConnection(tiktokUsername);
@@ -150,3 +150,6 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
 	console.log(`Sunucu http://localhost:${PORT} adresinde çalışıyor`);
 });
+
+
+

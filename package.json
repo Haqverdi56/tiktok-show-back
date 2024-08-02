@@ -14,7 +14,6 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "kafkajs": "^2.2.4",
     "mongoose": "^8.4.1",
     "socket.io": "^4.7.5",
     "tiktok-live-connector": "^1.1.7",
