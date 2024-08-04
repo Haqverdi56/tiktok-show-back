@@ -29,8 +29,9 @@ const io = socketIo(server, {
 
 app.use(cors());
 app.use(express.static('public'));
-app.use(express.json());
-
+// app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 // MongoDB bağlantısı
 mongoose
 	.connect(process.env.SECRET_KEY)
@@ -141,9 +142,9 @@ tiktokLiveConnection.on('gift', async (data) => {
 });
 
 app.use('/api', participantRoutes);
-app.use('/', function (req, res) {
-	res.send('Welcome to my API');
-});
+// app.use('/', function (req, res) {
+// 	res.send('Welcome to my API');
+// });
 
 // Sunucuyu başlat
 const PORT = process.env.PORT || 3000;

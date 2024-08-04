@@ -54,6 +54,7 @@ exports.addParticipant = async (req, res) => {
 
 // Tüm katılımcıları al
 exports.getAllParticipants = async (req, res) => {
+	console.log("path:",req.path, "query:", req.query)
 	try {
 		const participants = await Participant.find();
 		res.status(200).send(participants);
