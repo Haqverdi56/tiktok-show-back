@@ -4,13 +4,12 @@ const mongoose = require('mongoose');
 const socketIo = require('socket.io');
 const { WebcastPushConnection } = require('tiktok-live-connector');
 const cors = require('cors');
-const participantRoutes = require('./routes/participantRoutes');
+const participantRoutes = require('./routers/participantRoutes');
 const axios = require('axios');
 const Participant = require('./models/Participant');
 
 require('dotenv').config();
 
-// Canlı olan birinin kullanıcı adı
 const tiktokUsername = 'lider.shov';
 
 // Yeni bir bağlantı nesnesi oluştur ve kullanıcı adını geç
@@ -142,9 +141,9 @@ tiktokLiveConnection.on('gift', async (data) => {
 });
 
 app.use('/api', participantRoutes);
-// app.use('/', function (req, res) {
-// 	res.send('Welcome to my API');
-// });
+app.use('/', function (req, res) {
+	res.send('Welcome to my API');
+});
 
 // Sunucuyu başlat
 const PORT = process.env.PORT || 3000;
