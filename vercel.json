@@ -1,9 +1,28 @@
 {
-	"rewrites": [{ "source": "/(.*)", "destination": "/" }],
-	"builds": [
-    { "src": "index.js", "use": "@vercel/node" }
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/server.js" }
-  ]
+  "redirects": [
+    {
+      "source": "/old-path",
+      "destination": "/new-path",
+      "statusCode": 301
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "max-age=0, no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
 }
