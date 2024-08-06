@@ -28,9 +28,14 @@ exports.duelActive = async (req, res) => {
 		await Participant.updateMany({}, { $set: { duel: 0 } });
 
 		// İlk elemanı 1, ikincisini 2 ve üçüncüsünü 3 olarak ayarla
-		await Participant.updateOne({ _id: ids[0] }, { $set: { duel: 1 } });
-		await Participant.updateOne({ _id: ids[1] }, { $set: { duel: 2 } });
-		await Participant.updateOne({ _id: ids[2] }, { $set: { duel: 3 } });
+		await Participant.updateOne({ _id: ids[0] }, { $set: { duel: 1 }, $addToSet: { giftId: { $each: [6646, 8916, 6369] } } });
+        await Participant.updateOne({ _id: ids[1] }, { $set: { duel: 2 }, $addToSet: { giftId: { $each: [8469, 6149, 9072] } } });
+        await Participant.updateOne({ _id: ids[2] }, { $set: { duel: 3 }, $addToSet: { giftId: { $each: [5767, 6203, 8563] } } });
+
+
+		// await Participant.updateOne({ _id: ids[0] }, { $set: { duel: 1 } });
+		// await Participant.updateOne({ _id: ids[1] }, { $set: { duel: 2 } });
+		// await Participant.updateOne({ _id: ids[2] }, { $set: { duel: 3 } });
 
 		res.status(200).send({ message: 'Participants updated successfully' });
 	} catch (error) {
@@ -54,7 +59,7 @@ exports.addParticipant = async (req, res) => {
 
 // Tüm katılımcıları al
 exports.getAllParticipants = async (req, res) => {
-	console.log("path:",req.path, "query:", req.query)
+	// console.log("path:",req.path, "query:", req.query)
 	try {
 		const participants = await Participant.find();
 		res.status(200).send(participants);

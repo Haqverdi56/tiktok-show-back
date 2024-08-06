@@ -10,7 +10,7 @@ const Participant = require('./models/Participant');
 
 require('dotenv').config();
 
-const tiktokUsername = 'lider.shov';
+const tiktokUsername = 'pai_jah12';
 
 // Yeni bir bağlantı nesnesi oluştur ve kullanıcı adını geç
 let tiktokLiveConnection = new WebcastPushConnection(tiktokUsername);
@@ -74,7 +74,7 @@ io.on('connection', (socket) => {
 
 // Hediye olaylarını dinle ve tarayıcıya gönder
 
-const MAX_RETRY_COUNT = 6; // Maksimum yeniden deneme sayısı
+const MAX_RETRY_COUNT = 10; // Maksimum yeniden deneme sayısı
 
 async function updateParticipantScore(giftId, increment) {
 	for (let attempt = 0; attempt < MAX_RETRY_COUNT; attempt++) {
@@ -146,8 +146,8 @@ app.use('/', function (req, res) {
 });
 
 // Sunucuyu başlat
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+// const PORT = process.env.PORT || 3000;
+server.listen(process.env.PORT || 3000, () => {
 	console.log(`Sunucu http://localhost:${PORT} adresinde çalışıyor`);
 });
 
