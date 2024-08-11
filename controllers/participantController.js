@@ -13,6 +13,21 @@ exports.resetScore = async (req, res) => {
 		res.status(500).send({ message: 'Failed to reset scores' });
 	}
 };
+exports.scoreX = async (req, res) => {
+	try {
+		const { scoreX } = req.body;
+	
+		const result = await Participant.updateMany(
+			{},
+		  { scoreX: scoreX },
+		  { upsert: false, multi: true }
+		);
+	
+		res.json({ success: true, data: result });
+	  } catch (error) {
+		res.status(500).json({ success: false, error: error.message });
+	  }
+};
 exports.duelActive = async (req, res) => {
 	console.log('reset!!!');
 	const { ids } = req.body;
@@ -31,11 +46,6 @@ exports.duelActive = async (req, res) => {
 		await Participant.updateOne({ _id: ids[0] }, { $set: { duel: 1 }, $addToSet: { giftId: { $each: [6646, 8916, 6369] } } });
         await Participant.updateOne({ _id: ids[1] }, { $set: { duel: 2 }, $addToSet: { giftId: { $each: [8469, 6149, 9072] } } });
         await Participant.updateOne({ _id: ids[2] }, { $set: { duel: 3 }, $addToSet: { giftId: { $each: [5767, 6203, 8563] } } });
-
-
-		// await Participant.updateOne({ _id: ids[0] }, { $set: { duel: 1 } });
-		// await Participant.updateOne({ _id: ids[1] }, { $set: { duel: 2 } });
-		// await Participant.updateOne({ _id: ids[2] }, { $set: { duel: 3 } });
 
 		res.status(200).send({ message: 'Participants updated successfully' });
 	} catch (error) {

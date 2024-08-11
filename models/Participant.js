@@ -8,6 +8,7 @@ const participantSchema = new mongoose.Schema({
 	img: { type: String, required: true },
 	gifts: { type: [String], required: true },
 	duel: { type: Number, default: 0 },
+	scoreX: { type: Boolean, default: false },
 });
 
 const Participant = mongoose.model('Participant', participantSchema);

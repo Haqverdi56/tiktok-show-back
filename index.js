@@ -10,7 +10,7 @@ const Participant = require('./models/Participant');
 
 require('dotenv').config();
 
-const tiktokUsername = 'pai_jah12';
+const tiktokUsername = 'lider.shov';
 
 // Yeni bir bağlantı nesnesi oluştur ve kullanıcı adını geç
 let tiktokLiveConnection = new WebcastPushConnection(tiktokUsername);
@@ -66,7 +66,7 @@ app.post('/api/connect', (req, res) => {
 
 // Socket.IO bağlantılarını dinle
 io.on('connection', (socket) => {
-	console.log('Tarayıcı bağlandı');
+	// console.log('Tarayıcı bağlandı');
 	socket.on('message', (message) => {
 		console.log('Tarayıcıdan gelen mesaj:', message);
 	});
@@ -74,7 +74,7 @@ io.on('connection', (socket) => {
 
 // Hediye olaylarını dinle ve tarayıcıya gönder
 
-const MAX_RETRY_COUNT = 10; // Maksimum yeniden deneme sayısı
+const MAX_RETRY_COUNT = 15	; // Maksimum yeniden deneme sayısı
 
 async function updateParticipantScore(giftId, increment) {
 	for (let attempt = 0; attempt < MAX_RETRY_COUNT; attempt++) {
@@ -95,7 +95,7 @@ async function updateParticipantScore(giftId, increment) {
 					participant.name
 				);
 			} else {
-				console.log('Participant not found for giftId:', giftId);
+				console.log('İçtirakçı tapılmadı:', giftId);
 			}
 
 			await session.commitTransaction();
@@ -106,10 +106,9 @@ async function updateParticipantScore(giftId, increment) {
 			session.endSession();
 			if (attempt === MAX_RETRY_COUNT - 1) {
 				console.error(
-					'Error updating participant score after multiple attempts:',
-					error
+					'Error updating participant score after multiple attempts:'
 				);
-				throw error; // Maksimum deneme sayısına ulaşıldı, hatayı tekrar fırlat
+				// throw error; // Maksimum deneme sayısına ulaşıldı, hatayı tekrar fırlat
 			}
 			console.warn(
 				`Retrying update for participant score, attempt ${attempt + 1}`
@@ -146,10 +145,7 @@ app.use('/', function (req, res) {
 });
 
 // Sunucuyu başlat
-// const PORT = process.env.PORT || 3000;
-server.listen(process.env.PORT || 3000, () => {
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
 	console.log(`Sunucu http://localhost:${PORT} adresinde çalışıyor`);
 });
-
-
-
