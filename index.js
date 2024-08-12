@@ -10,7 +10,7 @@ const Participant = require('./models/Participant');
 
 require('dotenv').config();
 
-const tiktokUsername = 'lider.shov';
+const tiktokUsername = 'ferrone0302';
 
 // Yeni bir bağlantı nesnesi oluştur ve kullanıcı adını geç
 let tiktokLiveConnection = new WebcastPushConnection(tiktokUsername);
