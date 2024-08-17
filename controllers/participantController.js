@@ -3,8 +3,10 @@ const Participant = require('../models/Participant');
 // Yeni bir katılımcı ekle
 exports.resetScore = async (req, res) => {
 	console.log('reset!!!');
+	const giftIdsToRemove = [6646, 8916, 6369, 8469, 6149, 9072, 5767, 6203, 8563];
+
 	try {
-		await Participant.updateMany({}, { $set: { score: 0 } });
+		await Participant.updateMany({}, { $set: { score: 0 }, $pull: { giftId: { $in: giftIdsToRemove } } });
 		await Participant.updateMany({}, { $set: { duel: 0 } });
 		
 		res.status(200).send({ message: 'All scores have been reset to 0' });
@@ -43,9 +45,9 @@ exports.duelActive = async (req, res) => {
 		await Participant.updateMany({}, { $set: { duel: 0 } });
 
 		// İlk elemanı 1, ikincisini 2 ve üçüncüsünü 3 olarak ayarla
-		await Participant.updateOne({ _id: ids[0] }, { $set: { duel: 1 }, $addToSet: { giftId: { $each: [6646, 8916, 6369] } } });
-        await Participant.updateOne({ _id: ids[1] }, { $set: { duel: 2 }, $addToSet: { giftId: { $each: [8469, 6149, 9072] } } });
-        await Participant.updateOne({ _id: ids[2] }, { $set: { duel: 3 }, $addToSet: { giftId: { $each: [5767, 6203, 8563] } } });
+			await Participant.updateOne({ _id: ids[0] }, { $set: { duel: 1 }, $addToSet: { giftId: { $each: [6646, 8916, 6369] } } });
+			await Participant.updateOne({ _id: ids[1] }, { $set: { duel: 2 }, $addToSet: { giftId: { $each: [8469, 6149, 9072] } } });
+			await Participant.updateOne({ _id: ids[2] }, { $set: { duel: 3 }, $addToSet: { giftId: { $each: [5767, 6203, 8563] } } });
 
 		res.status(200).send({ message: 'Participants updated successfully' });
 	} catch (error) {
