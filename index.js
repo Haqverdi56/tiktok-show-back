@@ -10,7 +10,7 @@ const Participant = require('./models/Participant');
 
 require('dotenv').config();
 
-const tiktokUsername = 'lider.shov';
+const tiktokUsername = 'paranoia.304';
 
 // Yeni bir bağlantı nesnesi oluştur ve kullanıcı adını geç
 let tiktokLiveConnection = new WebcastPushConnection(tiktokUsername);
@@ -63,6 +63,10 @@ app.post('/api/connect', (req, res) => {
 			res.send(err);
 		});
 });
+
+tiktokLiveConnection.on('error', err => {
+    console.error('Error!', err);
+})
 
 // Socket.IO bağlantılarını dinle
 io.on('connection', (socket) => {
@@ -125,6 +129,7 @@ tiktokLiveConnection.on('gift', async (data) => {
 		console.log(
 			`${data.nickname} has sent gift ${data.giftName} count:${data.diamondCount} x${data.repeatCount} giftID: ${data.giftId}`
 		);
+		// console.log(tiktokLiveConnection);
 
 		if (data.displayType != 'live_gift_send_message_to_guest') {
 			const increment = data.diamondCount * data.repeatCount;
