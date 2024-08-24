@@ -38,13 +38,18 @@ mongoose
 	.catch((err) => console.error('MongoDB bağlantısı hatası', err));
 
 // Routes
-
+let liveStop = false;
+let reconnectTimeout;
 
 app.post('/api/disconnect', (req, res) => {
+	if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout); // Clear any pending reconnection attempt
+    }
 	try {
 		tiktokLiveConnection.disconnect();
 		res.status(200).send('Disconnect!');
 		console.log('diconnect!');
+		liveStop = true;
 	} catch (err) {
 		console.error('Error:', err);
 		res.status(500).send('Error disconnecting');
@@ -57,6 +62,7 @@ app.post('/api/connect', (req, res) => {
 		.then((state) => {
 			console.info(`Oda Kimliği ${state.roomId} ile bağlandı`);
 			res.send(state.isConnected);
+			liveStop = false
 		})
 		.catch((err) => {
 			console.error('Bağlantı başarısız', err);
@@ -67,6 +73,24 @@ app.post('/api/connect', (req, res) => {
 tiktokLiveConnection.on('error', err => {
     console.error('Error!', err);
 })
+
+tiktokLiveConnection.on('disconnected',  () => {
+	console.log('Bağlantı kesildi!!!');
+	reconnectTimeout = setTimeout(async()=>{
+		if (!liveStop) {
+			try {
+				console.log('Yeniden bağlanmayı deniyor...');
+				await tiktokLiveConnection.connect();
+				console.log('Yeniden bağlandı!');
+			  } catch (err) {
+				console.error('Yeniden bağlantı başarısız:', err);
+			  }
+		} else {
+			console.log("Live has stopped");
+			liveStop = false
+		}
+	}, 1000)
+});
 
 // Socket.IO bağlantılarını dinle
 io.on('connection', (socket) => {
@@ -129,7 +153,6 @@ tiktokLiveConnection.on('gift', async (data) => {
 		console.log(
 			`${data.nickname} has sent gift ${data.giftName} count:${data.diamondCount} x${data.repeatCount} giftID: ${data.giftId}`
 		);
-		// console.log(tiktokLiveConnection);
 
 		if (data.displayType != 'live_gift_send_message_to_guest') {
 			const increment = data.diamondCount * data.repeatCount;
