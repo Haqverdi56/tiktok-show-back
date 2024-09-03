@@ -56,18 +56,18 @@ app.post('/api/disconnect', (req, res) => {
 	}
 });
 
+tiktokLiveConnection
+	.connect()
+	.then((state) => {
+		console.info(`Oda Kimliği ${state.roomId} ile bağlandı`);
+		// res.send(state.isConnected);
+		liveStop = false
+	})
+	.catch((err) => {
+		console.error('Bağlantı başarısız', err);
+		// res.send(err);
+	});
 app.post('/api/connect', (req, res) => {
-	tiktokLiveConnection
-		.connect()
-		.then((state) => {
-			console.info(`Oda Kimliği ${state.roomId} ile bağlandı`);
-			res.send(state.isConnected);
-			liveStop = false
-		})
-		.catch((err) => {
-			console.error('Bağlantı başarısız', err);
-			res.send(err);
-		});
 });
 
 tiktokLiveConnection.on('error', err => {
@@ -110,7 +110,7 @@ async function updateParticipantScore(giftId, increment) {
 		session.startTransaction();
 		try {
 			const participant = await Participant.findOneAndUpdate(
-				{ giftId: giftId },
+				{ name: "Əli Əhmədli"},
 				{ $inc: { score: increment } },
 				{ new: true, session: session }
 			);
