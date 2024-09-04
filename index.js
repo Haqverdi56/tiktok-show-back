@@ -43,8 +43,8 @@ let reconnectTimeout;
 
 app.post('/api/disconnect', (req, res) => {
 	if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout); // Clear any pending reconnection attempt
-    }
+		clearTimeout(reconnectTimeout); // Clear any pending reconnection attempt
+	}
 	try {
 		tiktokLiveConnection.disconnect();
 		res.status(200).send('Disconnect!');
@@ -56,40 +56,40 @@ app.post('/api/disconnect', (req, res) => {
 	}
 });
 
-tiktokLiveConnection
-	.connect()
-	.then((state) => {
-		console.info(`Oda Kimliği ${state.roomId} ile bağlandı`);
-		// res.send(state.isConnected);
-		liveStop = false
-	})
-	.catch((err) => {
-		console.error('Bağlantı başarısız', err);
-		// res.send(err);
-	});
 app.post('/api/connect', (req, res) => {
+	tiktokLiveConnection
+		.connect()
+		.then((state) => {
+			console.info(`Oda Kimliği ${state.roomId} ile bağlandı`);
+			// res.send(state.isConnected);
+			liveStop = false;
+		})
+		.catch((err) => {
+			console.error('Bağlantı başarısız', err);
+			// res.send(err);
+		});
 });
 
-tiktokLiveConnection.on('error', err => {
-    console.error('Error!', err);
-})
+tiktokLiveConnection.on('error', (err) => {
+	console.error('Error!', err);
+});
 
-tiktokLiveConnection.on('disconnected',  () => {
+tiktokLiveConnection.on('disconnected', () => {
 	console.log('Bağlantı kesildi!!!');
-	reconnectTimeout = setTimeout(async()=>{
+	reconnectTimeout = setTimeout(async () => {
 		if (!liveStop) {
 			try {
 				console.log('Yeniden bağlanmayı deniyor...');
 				await tiktokLiveConnection.connect();
 				console.log('Yeniden bağlandı!');
-			  } catch (err) {
+			} catch (err) {
 				console.error('Yeniden bağlantı başarısız:', err);
-			  }
+			}
 		} else {
-			console.log("Live has stopped");
-			liveStop = false
+			console.log('Live has stopped');
+			liveStop = false;
 		}
-	}, 1000)
+	}, 1000);
 });
 
 // Socket.IO bağlantılarını dinle
@@ -102,7 +102,7 @@ io.on('connection', (socket) => {
 
 // Hediye olaylarını dinle ve tarayıcıya gönder
 
-const MAX_RETRY_COUNT = 15	; // Maksimum yeniden deneme sayısı
+const MAX_RETRY_COUNT = 15; // Maksimum yeniden deneme sayısı
 
 async function updateParticipantScore(giftId, increment) {
 	for (let attempt = 0; attempt < MAX_RETRY_COUNT; attempt++) {
@@ -110,7 +110,7 @@ async function updateParticipantScore(giftId, increment) {
 		session.startTransaction();
 		try {
 			const participant = await Participant.findOneAndUpdate(
-				{ name: "Əli Əhmədli"},
+				{ name: 'Nabat' },
 				{ $inc: { score: increment } },
 				{ new: true, session: session }
 			);
