@@ -5,12 +5,13 @@ const socketIo = require('socket.io');
 const { WebcastPushConnection } = require('tiktok-live-connector');
 const cors = require('cors');
 const participantRoutes = require('./routers/participantRoutes');
-const axios = require('axios');
+const likersRoutes = require('./routers/likersRoutes');
+const { handleLike } = require('./controllers/likersController');
 const Participant = require('./models/Participant');
 
 require('dotenv').config();
 
-const tiktokUsername = 'shans.show';
+const tiktokUsername = 'goldshow_tt';
 
 // Yeni bir bağlantı nesnesi oluştur ve kullanıcı adını geç
 let tiktokLiveConnection = new WebcastPushConnection(tiktokUsername);
@@ -40,6 +41,7 @@ mongoose
 // Routes
 let liveStop = false;
 let reconnectTimeout;
+let liveIsConnected = false;
 
 app.post('/api/disconnect', (req, res) => {
 	if (reconnectTimeout) {
@@ -48,11 +50,13 @@ app.post('/api/disconnect', (req, res) => {
 	try {
 		tiktokLiveConnection.disconnect();
 		res.status(200).send('Disconnect!');
-		console.log('diconnect!');
+		console.log('disconnect!');
 		liveStop = true;
+		liveIsConnected = false;
 	} catch (err) {
 		console.error('Error:', err);
 		res.status(500).send('Error disconnecting');
+		liveIsConnected = true;
 	}
 });
 
@@ -61,12 +65,14 @@ app.post('/api/connect', (req, res) => {
 		.connect()
 		.then((state) => {
 			console.info(`Oda Kimliği ${state.roomId} ile bağlandı`);
-			// res.send(state.isConnected);
+			res.send(state.isConnected);
 			liveStop = false;
+			liveIsConnected = true;
 		})
 		.catch((err) => {
 			console.error('Bağlantı başarısız', err);
 			// res.send(err);
+			liveIsConnected = false;
 		});
 });
 
@@ -82,8 +88,10 @@ tiktokLiveConnection.on('disconnected', () => {
 				console.log('Yeniden bağlanmayı deniyor...');
 				await tiktokLiveConnection.connect();
 				console.log('Yeniden bağlandı!');
+				liveIsConnected = true
 			} catch (err) {
 				console.error('Yeniden bağlantı başarısız:', err);
+				liveIsConnected = false
 			}
 		} else {
 			console.log('Live has stopped');
@@ -110,7 +118,7 @@ async function updateParticipantScore(giftId, increment) {
 		session.startTransaction();
 		try {
 			const participant = await Participant.findOneAndUpdate(
-				{ name: 'Nabat' },
+				{ giftId: giftId },
 				{ $inc: { score: increment } },
 				{ new: true, session: session }
 			);
@@ -167,7 +175,15 @@ tiktokLiveConnection.on('gift', async (data) => {
 	}
 });
 
+tiktokLiveConnection.on('like', async (data) => {
+	await handleLike(data);
+});
+
 app.use('/api', participantRoutes);
+app.use('/api/showlikers', likersRoutes);
+app.post('/api/connection-status', (req, res) => {
+	liveIsConnected ? res.send(true) : res.send(false)
+});
 app.use('/', function (req, res) {
 	res.send('Welcome to my API');
 });
