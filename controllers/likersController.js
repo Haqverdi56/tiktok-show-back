@@ -37,7 +37,22 @@ const getAllLikers = async (req, res) => {
 	}
 };
 
+const deleteAllLikers = async (req, res) => {
+	try {
+		await Likers.deleteMany({}); // Tüm dokümanları sil
+		res
+			.status(200)
+			.json({ message: 'All likers have been deleted successfully.' });
+	} catch (error) {
+		res.status(500).json({
+			error: 'An error occurred while deleting likers.',
+			details: error,
+		});
+	}
+};
+
 module.exports = {
 	handleLike,
 	getAllLikers,
+	deleteAllLikers,
 };
