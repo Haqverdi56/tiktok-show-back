@@ -11,7 +11,7 @@ const Participant = require('./models/Participant');
 
 require('dotenv').config();
 
-const tiktokUsername = 'show.n1';
+const tiktokUsername = 'monopolywou';
 
 // Yeni bir bağlantı nesnesi oluştur ve kullanıcı adını geç
 let tiktokLiveConnection = new WebcastPushConnection(tiktokUsername);
@@ -161,7 +161,8 @@ tiktokLiveConnection.on('gift', async (data) => {
 		console.log(
 			`${data.nickname} has sent gift ${data.giftName} count:${data.diamondCount} x${data.repeatCount} giftID: ${data.giftId}`
 		);
-
+		// console.log(data);
+		
 		if (data.displayType != 'live_gift_send_message_to_guest') {
 			const increment = data.diamondCount * data.repeatCount;
 			try {
