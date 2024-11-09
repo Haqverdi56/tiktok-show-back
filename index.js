@@ -11,11 +11,6 @@ const Participant = require('./models/Participant');
 
 require('dotenv').config();
 
-const tiktokUsername = 'monopolywou';
-
-// Yeni bir bağlantı nesnesi oluştur ve kullanıcı adını geç
-let tiktokLiveConnection = new WebcastPushConnection(tiktokUsername);
-
 // Express uygulaması oluştur
 const app = express();
 const server = http.createServer(app);
@@ -60,12 +55,117 @@ app.post('/api/disconnect', (req, res) => {
 	}
 });
 
-app.post('/api/connect', (req, res) => {
+let tiktokLiveConnection = null;
+
+const connectToLiveStream = async (username) => {
+	tiktokLiveConnection = new WebcastPushConnection(username);
+
+	const MAX_RETRY_COUNT = 15;
+
+	async function updateParticipantScore(giftId, increment) {
+		for (let attempt = 0; attempt < MAX_RETRY_COUNT; attempt++) {
+			const session = await mongoose.startSession();
+			session.startTransaction();
+			try {
+				const participant = await Participant.findOneAndUpdate(
+					{ giftId: giftId },
+					{ $inc: { score: increment } },
+					{ new: true, session: session }
+				);
+
+				if (participant) {
+					console.log(
+						'Score updated:',
+						participant.score,
+						' name:',
+						participant.name
+					);
+				} else {
+					console.log('İçtirakçı tapılmadı:', giftId);
+				}
+
+				await session.commitTransaction();
+				session.endSession();
+				return; // Başarılı, fonksiyondan çık
+			} catch (error) {
+				await session.abortTransaction();
+				session.endSession();
+				if (attempt === MAX_RETRY_COUNT - 1) {
+					console.error(
+						'Error updating participant score after multiple attempts:'
+					);
+					// throw error; // Maksimum deneme sayısına ulaşıldı, hatayı tekrar fırlat
+				}
+				console.warn(
+					`Retrying update for participant score, attempt ${attempt + 1}`
+				);
+			}
+		}
+	}
+
+	tiktokLiveConnection.on('error', (err) => {
+		console.error('Error 56!', err);
+		io.emit('disconnectLive', false);
+	});
+
+	tiktokLiveConnection.on('disconnected', () => {
+		console.log('Bağlantı kesildi!!!');
+		io.emit('disconnectLive', false);
+		reconnectTimeout = setTimeout(async () => {
+			if (!liveStop) {
+				try {
+					console.log('Yeniden bağlanmayı deniyor...');
+					await tiktokLiveConnection.connect();
+					console.log('Yeniden bağlandı!');
+					liveIsConnected = true;
+					io.emit('disconnectLive', true);
+				} catch (err) {
+					console.error('Yeniden bağlantı başarısız:', err);
+					liveIsConnected = false;
+					io.emit('disconnectLive', false);
+				}
+			} else {
+				console.log('Live has stopped');
+				liveStop = false;
+				io.emit('disconnectLive', false);
+			}
+		}, 1000);
+	});
+
+	tiktokLiveConnection.on('gift', async (data) => {
+		if (data.giftType === 1 && !data.repeatEnd) {
+			// Skip temporary gifts
+		} else {
+			io.emit('gift', data); // Tüm bağlı istemcilere gönder
+			console.log(
+				`${data.nickname} has sent gift ${data.giftName} count:${data.diamondCount} x${data.repeatCount} giftID: ${data.giftId}`
+			);
+			// console.log(data);
+
+			if (data.displayType != 'live_gift_send_message_to_guest') {
+				const increment = data.diamondCount * data.repeatCount;
+				try {
+					await updateParticipantScore(data.giftId, increment);
+				} catch (error) {
+					console.error('Failed to update participant score:', error);
+				}
+			} else {
+				console.log('Guest true');
+			}
+		}
+	});
+
+	// tiktokLiveConnection.on('like', async (data) => {
+	// 	await handleLike(data);
+	// });
+
 	tiktokLiveConnection
 		.connect()
 		.then((state) => {
 			console.info(`Oda Kimliği ${state.roomId} ile bağlandı`);
-			res.send(state.isConnected);
+			// res.send(state.isConnected);
+			io.emit('connectStatus', true);
+			io.emit('disconnectLive', true);
 			liveStop = false;
 			liveIsConnected = true;
 		})
@@ -74,30 +174,11 @@ app.post('/api/connect', (req, res) => {
 			// res.send(err);
 			liveIsConnected = false;
 		});
-});
+};
 
-tiktokLiveConnection.on('error', (err) => {
-	console.error('Error!', err);
-});
-
-tiktokLiveConnection.on('disconnected', () => {
-	console.log('Bağlantı kesildi!!!');
-	reconnectTimeout = setTimeout(async () => {
-		if (!liveStop) {
-			try {
-				console.log('Yeniden bağlanmayı deniyor...');
-				await tiktokLiveConnection.connect();
-				console.log('Yeniden bağlandı!');
-				liveIsConnected = true
-			} catch (err) {
-				console.error('Yeniden bağlantı başarısız:', err);
-				liveIsConnected = false
-			}
-		} else {
-			console.log('Live has stopped');
-			liveStop = false;
-		}
-	}, 1000);
+app.post('/api/connect', async (req, res) => {
+	let tiktokUsername = req.body.pageName;
+	await connectToLiveStream(tiktokUsername);
 });
 
 // Socket.IO bağlantılarını dinle
@@ -108,82 +189,10 @@ io.on('connection', (socket) => {
 	});
 });
 
-// Hediye olaylarını dinle ve tarayıcıya gönder
-
-const MAX_RETRY_COUNT = 15; // Maksimum yeniden deneme sayısı
-
-async function updateParticipantScore(giftId, increment) {
-	for (let attempt = 0; attempt < MAX_RETRY_COUNT; attempt++) {
-		const session = await mongoose.startSession();
-		session.startTransaction();
-		try {
-			const participant = await Participant.findOneAndUpdate(
-				{ giftId: giftId },
-				{ $inc: { score: increment } },
-				{ new: true, session: session }
-			);
-
-			if (participant) {
-				console.log(
-					'Score updated:',
-					participant.score,
-					' name:',
-					participant.name
-				);
-			} else {
-				console.log('İçtirakçı tapılmadı:', giftId);
-			}
-
-			await session.commitTransaction();
-			session.endSession();
-			return; // Başarılı, fonksiyondan çık
-		} catch (error) {
-			await session.abortTransaction();
-			session.endSession();
-			if (attempt === MAX_RETRY_COUNT - 1) {
-				console.error(
-					'Error updating participant score after multiple attempts:'
-				);
-				// throw error; // Maksimum deneme sayısına ulaşıldı, hatayı tekrar fırlat
-			}
-			console.warn(
-				`Retrying update for participant score, attempt ${attempt + 1}`
-			);
-		}
-	}
-}
-
-tiktokLiveConnection.on('gift', async (data) => {
-	if (data.giftType === 1 && !data.repeatEnd) {
-		// Skip temporary gifts
-	} else {
-		io.emit('gift', data); // Tüm bağlı istemcilere gönder
-		console.log(
-			`${data.nickname} has sent gift ${data.giftName} count:${data.diamondCount} x${data.repeatCount} giftID: ${data.giftId}`
-		);
-		// console.log(data);
-		
-		if (data.displayType != 'live_gift_send_message_to_guest') {
-			const increment = data.diamondCount * data.repeatCount;
-			try {
-				await updateParticipantScore(data.giftId, increment);
-			} catch (error) {
-				console.error('Failed to update participant score:', error);
-			}
-		} else {
-			console.log('Guest true');
-		}
-	}
-});
-
-tiktokLiveConnection.on('like', async (data) => {
-	await handleLike(data);
-});
-
 app.use('/api', participantRoutes);
 app.use('/api/showlikers', likersRoutes);
 app.post('/api/connection-status', (req, res) => {
-	liveIsConnected ? res.send(true) : res.send(false)
+	liveIsConnected ? res.send(true) : res.send(false);
 });
 app.use('/', function (req, res) {
 	res.send('Welcome to my API');
