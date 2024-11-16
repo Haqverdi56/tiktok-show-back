@@ -8,6 +8,7 @@ router.post('/scorex', participantController.scoreX);
 router.patch('/participants/:id', participantController.updateParticipant);
 router.delete('/participants/:id', participantController.deleteParticipant);
 
+router.post('/duel-deactive', participantController.duelDeactive);
 router.patch('/reset-scores', participantController.resetScore);
 router.patch('/set-duel', participantController.duelActive);
 

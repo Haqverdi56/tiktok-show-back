@@ -3,12 +3,15 @@ const Participant = require('../models/Participant');
 // Yeni bir katılımcı ekle
 exports.resetScore = async (req, res) => {
 	console.log('reset!!!');
-	const giftIdsToRemove = [6646, 8916, 6369, 8469, 6149, 9072, 5767, 6203, 8563];
+	const giftIdsToRemove = [
+		6646, 8916, 6369, 8469, 6149, 9072, 5767, 6203, 8563,
+	];
 
 	try {
-		await Participant.updateMany({}, { $set: { score: 0 }, $pull: { giftId: { $in: giftIdsToRemove } } });
-		await Participant.updateMany({}, { $set: { duel: 0 } });
-		
+		await Participant.updateMany(
+			{},
+			{ $set: { score: 0 }, $pull: { giftId: { $in: giftIdsToRemove } } }
+		);
 		res.status(200).send({ message: 'All scores have been reset to 0' });
 	} catch (error) {
 		console.error('Error resetting scores:', error);
@@ -18,17 +21,30 @@ exports.resetScore = async (req, res) => {
 exports.scoreX = async (req, res) => {
 	try {
 		const { scoreX } = req.body;
-	
+
 		const result = await Participant.updateMany(
 			{},
-		  { scoreX: scoreX },
-		  { upsert: false, multi: true }
+			{ scoreX: scoreX },
+			{ upsert: false, multi: true }
 		);
-	
+
 		res.json({ success: true, data: result });
-	  } catch (error) {
+	} catch (error) {
 		res.status(500).json({ success: false, error: error.message });
-	  }
+	}
+};
+exports.duelDeactive = async (req, res) => {
+	try {
+		await Participant.updateMany({}, { $set: { duel: 0 } });
+		res
+			.status(200)
+			.json({ message: 'All participants have been deactivated for duels.' });
+	} catch (error) {
+		console.error('Error deactivating duel for all participants:', error);
+		res
+			.status(500)
+			.json({ error: 'Error deactivating duel for all participants.' });
+	}
 };
 exports.duelActive = async (req, res) => {
 	console.log('reset!!!');
@@ -45,9 +61,27 @@ exports.duelActive = async (req, res) => {
 		await Participant.updateMany({}, { $set: { duel: 0 } });
 
 		// İlk elemanı 1, ikincisini 2 ve üçüncüsünü 3 olarak ayarla
-			await Participant.updateOne({ _id: ids[0] }, { $set: { duel: 1 }, $addToSet: { giftId: { $each: [6646, 8916, 6369] } } });
-			await Participant.updateOne({ _id: ids[1] }, { $set: { duel: 2 }, $addToSet: { giftId: { $each: [8469, 6149, 9072] } } });
-			await Participant.updateOne({ _id: ids[2] }, { $set: { duel: 3 }, $addToSet: { giftId: { $each: [5767, 6203, 8563] } } });
+		await Participant.updateOne(
+			{ _id: ids[0] },
+			{
+				$set: { duel: 1 },
+				$addToSet: { giftId: { $each: [6646, 8916, 6369] } },
+			}
+		);
+		await Participant.updateOne(
+			{ _id: ids[1] },
+			{
+				$set: { duel: 2 },
+				$addToSet: { giftId: { $each: [8469, 6149, 9072] } },
+			}
+		);
+		await Participant.updateOne(
+			{ _id: ids[2] },
+			{
+				$set: { duel: 3 },
+				$addToSet: { giftId: { $each: [5767, 6203, 8563] } },
+			}
+		);
 
 		res.status(200).send({ message: 'Participants updated successfully' });
 	} catch (error) {
@@ -58,13 +92,21 @@ exports.duelActive = async (req, res) => {
 
 exports.addParticipant = async (req, res) => {
 	const { name, isActive, giftId, score, img, gifts, duel } = req.body;
-	const newParticipant = new Participant({ name, isActive, giftId, score, img, gifts, duel });
+	const newParticipant = new Participant({
+		name,
+		isActive,
+		giftId,
+		score,
+		img,
+		gifts,
+		duel,
+	});
 	try {
-		console.log("Succc")
+		console.log('Succc');
 		await newParticipant.save();
 		res.status(201).send(newParticipant);
 	} catch (error) {
-		console.log("Errr");
+		console.log('Errr');
 		res.status(400).send(error);
 	}
 };
