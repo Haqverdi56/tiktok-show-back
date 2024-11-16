@@ -3,9 +3,6 @@ const Participant = require('../models/Participant');
 // Yeni bir katılımcı ekle
 exports.resetScore = async (req, res) => {
 	console.log('reset!!!');
-	const giftIdsToRemove = [
-		6646, 8916, 6369, 8469, 6149, 9072, 5767, 6203, 8563,
-	];
 
 	try {
 		await Participant.updateMany(
@@ -34,8 +31,14 @@ exports.scoreX = async (req, res) => {
 	}
 };
 exports.duelDeactive = async (req, res) => {
+	const giftIdsToRemove = [
+		6646, 8916, 6369, 8469, 6149, 9072, 5767, 6203, 7823,
+	];
 	try {
-		await Participant.updateMany({}, { $set: { duel: 0 } });
+		await Participant.updateMany(
+			{},
+			{ $set: { duel: 0 }, $pull: { giftId: { $in: giftIdsToRemove } } }
+		);
 		res
 			.status(200)
 			.json({ message: 'All participants have been deactivated for duels.' });
@@ -79,7 +82,7 @@ exports.duelActive = async (req, res) => {
 			{ _id: ids[2] },
 			{
 				$set: { duel: 3 },
-				$addToSet: { giftId: { $each: [5767, 6203, 8563] } },
+				$addToSet: { giftId: { $each: [5767, 6203, 7823] } },
 			}
 		);
 
