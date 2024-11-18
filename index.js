@@ -3,6 +3,23 @@ const http = require('http');
 const mongoose = require('mongoose');
 const socketIo = require('socket.io');
 const { WebcastPushConnection } = require('tiktok-live-connector');
+const multer = require('multer');
+const uploadMiddleware = multer({
+	limits: {
+		fileSize: 1024 * 1024 * 20,
+	},
+	fileFilter: (req, file, cb) => {
+		cb(undefined, true);
+	},
+	storage: multer.diskStorage({
+		filename: (req, file, cb) => {
+			cb(null, file.originalname);
+		},
+		destination: (req, file, cb) => {
+			cb(null, 'uploads/');
+		},
+	}),
+});
 const cors = require('cors');
 const participantRoutes = require('./routers/participantRoutes');
 const likersRoutes = require('./routers/likersRoutes');
@@ -189,6 +206,69 @@ io.on('connection', (socket) => {
 	});
 });
 
+// app.get('/', function (req, res) {
+// 	res.sendFile(__dirname + '/view/index.html');
+// });
+app.post('/participants', uploadMiddleware.single('img'), async (req, res) => {
+	// console.log(req.body);
+	try {
+		const { name, isActive, giftId, gifts, duel, scoreX } = req.body;
+	
+		// Resim dosyasının yolu
+		const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
+		// Katılımcıyı kaydet
+		const newParticipant = new Participant({
+		  name,
+		  isActive: JSON.parse(isActive),
+		  giftId: JSON.parse(giftId), // JSON string olarak gönderilen veriyi parse ediyoruz
+		  gifts: JSON.parse(gifts),
+		  duel: parseInt(duel),
+		  scoreX: JSON.parse(scoreX),
+		  img: imagePath,
+		});
+	
+		await newParticipant.save();
+	
+		res.status(201).json({ message: 'Katılımcı başarıyla eklendi!', participant: newParticipant });
+	  } catch (error) {
+		console.error('Hata oluştu:', error);
+		res.status(500).json({ message: 'Katılımcı eklenirken bir hata oluştu.' });
+	  }
+});
+// app.post('/upload', uploadMiddleware.single('avatar'), function (req, res) {
+// 	if (!req.file) {
+// 		return res.json({
+// 			success: false,
+// 			message: 'Dosya yuklenemedi',
+// 		});
+// 	}
+// 	// return succes
+// 	return res.json({
+// 		success: true,
+// 		message: 'Dosya yuklendi. Tebrikler...',
+// 		file: req.file,
+// 	});
+// });
+// app.get('/uploads/:filename', function (req, res) {
+// 	var filename = req.params.filename;
+// 	res.sendFile(__dirname + '/uploads/' + filename);
+// });
+// available gifts
+app.get('/availablegifts', (req, res) => {
+	let tiktokLiveConnectionName = new WebcastPushConnection('mr_developerh');
+	tiktokLiveConnectionName
+		.getAvailableGifts()
+		.then((giftList) => {
+			// console.log(giftList);
+			// giftList.forEach(gift => {
+			// 	console.log(`id: ${gift.id}, name: ${gift.name}, cost: ${gift.diamond_count}`)
+			// });
+			res.status(200).json(giftList);
+		})
+		.catch((err) => {
+			console.error(err);
+		});
+});
 app.use('/api', participantRoutes);
 app.use('/api/showlikers', likersRoutes);
 app.post('/api/connection-status', (req, res) => {
