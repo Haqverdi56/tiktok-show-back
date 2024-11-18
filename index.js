@@ -4,6 +4,8 @@ const mongoose = require('mongoose');
 const socketIo = require('socket.io');
 const { WebcastPushConnection } = require('tiktok-live-connector');
 const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 const uploadMiddleware = multer({
 	limits: {
 		fileSize: 1024 * 1024 * 20,
@@ -213,27 +215,32 @@ app.post('/participants', uploadMiddleware.single('img'), async (req, res) => {
 	// console.log(req.body);
 	try {
 		const { name, isActive, giftId, gifts, duel, scoreX } = req.body;
-	
+
 		// Resim dosyasının yolu
 		const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
 		// Katılımcıyı kaydet
 		const newParticipant = new Participant({
-		  name,
-		  isActive: JSON.parse(isActive),
-		  giftId: JSON.parse(giftId), // JSON string olarak gönderilen veriyi parse ediyoruz
-		  gifts: JSON.parse(gifts),
-		  duel: parseInt(duel),
-		  scoreX: JSON.parse(scoreX),
-		  img: imagePath,
+			name,
+			isActive: JSON.parse(isActive),
+			giftId: JSON.parse(giftId), // JSON string olarak gönderilen veriyi parse ediyoruz
+			gifts: JSON.parse(gifts),
+			duel: parseInt(duel),
+			scoreX: JSON.parse(scoreX),
+			img: imagePath,
 		});
-	
+
 		await newParticipant.save();
-	
-		res.status(201).json({ message: 'Katılımcı başarıyla eklendi!', participant: newParticipant });
-	  } catch (error) {
+
+		res
+			.status(201)
+			.json({
+				message: 'Katılımcı başarıyla eklendi!',
+				participant: newParticipant,
+			});
+	} catch (error) {
 		console.error('Hata oluştu:', error);
 		res.status(500).json({ message: 'Katılımcı eklenirken bir hata oluştu.' });
-	  }
+	}
 });
 // app.post('/upload', uploadMiddleware.single('avatar'), function (req, res) {
 // 	if (!req.file) {
@@ -249,6 +256,11 @@ app.post('/participants', uploadMiddleware.single('img'), async (req, res) => {
 // 		file: req.file,
 // 	});
 // });
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+	fs.mkdirSync(uploadDir, { recursive: true });
+	console.log('Uploads klasörü oluşturuldu.');
+}
 app.get('/uploads/:filename', function (req, res) {
 	var filename = req.params.filename;
 	res.sendFile(__dirname + '/uploads/' + filename);
