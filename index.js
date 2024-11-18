@@ -249,10 +249,10 @@ app.post('/participants', uploadMiddleware.single('img'), async (req, res) => {
 // 		file: req.file,
 // 	});
 // });
-// app.get('/uploads/:filename', function (req, res) {
-// 	var filename = req.params.filename;
-// 	res.sendFile(__dirname + '/uploads/' + filename);
-// });
+app.get('/uploads/:filename', function (req, res) {
+	var filename = req.params.filename;
+	res.sendFile(__dirname + '/uploads/' + filename);
+});
 // available gifts
 app.get('/availablegifts', (req, res) => {
 	let tiktokLiveConnectionName = new WebcastPushConnection('mr_developerh');
