@@ -7,7 +7,7 @@ exports.resetScore = async (req, res) => {
 	try {
 		await Participant.updateMany(
 			{},
-			{ $set: { score: 0 }, $pull: { giftId: { $in: giftIdsToRemove } } }
+			{ $set: { score: 0 } }
 		);
 		res.status(200).send({ message: 'All scores have been reset to 0' });
 	} catch (error) {

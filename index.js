@@ -208,11 +208,11 @@ io.on('connection', (socket) => {
 	});
 });
 
-// app.get('/', function (req, res) {
-// 	res.sendFile(__dirname + '/view/index.html');
-// });
+app.get('/', function (req, res) {
+	res.sendFile(__dirname + '/view/index.html');
+});
 app.post('/participants', uploadMiddleware.single('img'), async (req, res) => {
-	// console.log(req.body);
+	console.log(req.body);
 	try {
 		const { name, isActive, giftId, gifts, duel, scoreX } = req.body;
 
