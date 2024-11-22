@@ -160,6 +160,9 @@ const connectToLiveStream = async (username) => {
 				`${data.nickname} has sent gift ${data.giftName} count:${data.diamondCount} x${data.repeatCount} giftID: ${data.giftId}`
 			);
 			// console.log(data);
+			if (data.giftId == 6834) {
+				console.log(data);
+			}
 
 			if (data.displayType != 'live_gift_send_message_to_guest') {
 				const increment = data.diamondCount * data.repeatCount;
@@ -212,7 +215,7 @@ app.get('/', function (req, res) {
 	res.sendFile(__dirname + '/view/index.html');
 });
 app.post('/participants', uploadMiddleware.single('img'), async (req, res) => {
-	console.log(req.body);
+	// console.log(req.body);
 	try {
 		const { name, isActive, giftId, gifts, duel, scoreX } = req.body;
 
@@ -226,7 +229,7 @@ app.post('/participants', uploadMiddleware.single('img'), async (req, res) => {
 			gifts: JSON.parse(gifts),
 			duel: parseInt(duel),
 			scoreX: JSON.parse(scoreX),
-			img: imagePath,
+			img: `http://localhost:3000${imagePath}`,
 		});
 
 		await newParticipant.save();
