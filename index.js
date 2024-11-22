@@ -229,7 +229,7 @@ app.post('/participants', uploadMiddleware.single('img'), async (req, res) => {
 			gifts: JSON.parse(gifts),
 			duel: parseInt(duel),
 			scoreX: JSON.parse(scoreX),
-			img: `https://tiktok-show-back.onrender.com{imagePath}`,
+			img: `https://tiktok-show-back.onrender.com${imagePath}`,
 		});
 
 		await newParticipant.save();
