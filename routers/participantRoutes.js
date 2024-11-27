@@ -11,5 +11,6 @@ router.delete('/participants/:id', participantController.deleteParticipant);
 router.post('/duel-deactive', participantController.duelDeactive);
 router.patch('/reset-scores', participantController.resetScore);
 router.patch('/set-duel', participantController.duelActive);
+router.patch('/participants-change/:id', participantController.changeActiveParticipant);
 
 module.exports = router;

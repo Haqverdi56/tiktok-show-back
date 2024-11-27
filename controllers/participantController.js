@@ -5,10 +5,7 @@ exports.resetScore = async (req, res) => {
 	console.log('reset!!!');
 
 	try {
-		await Participant.updateMany(
-			{},
-			{ $set: { score: 0 } }
-		);
+		await Participant.updateMany({}, { $set: { score: 0 } });
 		res.status(200).send({ message: 'All scores have been reset to 0' });
 	} catch (error) {
 		console.error('Error resetting scores:', error);
@@ -60,7 +57,6 @@ exports.duelActive = async (req, res) => {
 	}
 
 	try {
-		// Tüm katılımcıların duel alanını 0 olarak ayarla
 		await Participant.updateMany({}, { $set: { duel: 0 } });
 
 		// İlk elemanı 1, ikincisini 2 ve üçüncüsünü 3 olarak ayarla
@@ -114,7 +110,6 @@ exports.addParticipant = async (req, res) => {
 	}
 };
 
-// Tüm katılımcıları al
 exports.getAllParticipants = async (req, res) => {
 	// console.log("path:",req.path, "query:", req.query)
 	try {
@@ -125,7 +120,6 @@ exports.getAllParticipants = async (req, res) => {
 	}
 };
 
-// Belirli bir katılımcıyı güncelle
 exports.updateParticipant = async (req, res) => {
 	const updates = Object.keys(req.body);
 	const allowedUpdates = ['name', 'giftId', 'score', 'img', 'gifts'];
@@ -166,7 +160,6 @@ exports.updateParticipant = async (req, res) => {
 	}
 };
 
-// Belirli bir katılımcıyı sil
 exports.deleteParticipant = async (req, res) => {
 	try {
 		const participant = await Participant.findByIdAndDelete(req.params.id);
@@ -176,6 +169,24 @@ exports.deleteParticipant = async (req, res) => {
 		}
 
 		res.send(participant);
+	} catch (error) {
+		res.status(500).send(error);
+	}
+};
+exports.changeActiveParticipant = async (req, res) => {
+	const { participantId, action } = req.body;
+
+	try {
+		// const participant = await Participant.findOneAndUpdate(req.params.id)
+		if (action == 'deactive') {
+			const participant = await Participant.findByIdAndUpdate(participantId, {
+				isActive: false,
+			});
+		} else {
+			const participant = await Participant.findByIdAndUpdate(participantId, {
+				isActive: true,
+			});
+		}
 	} catch (error) {
 		res.status(500).send(error);
 	}

@@ -4,29 +4,22 @@ const mongoose = require('mongoose');
 const socketIo = require('socket.io');
 const { WebcastPushConnection } = require('tiktok-live-connector');
 const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 const fs = require('fs');
-const path = require('path');
-const uploadMiddleware = multer({
-	limits: {
-		fileSize: 1024 * 1024 * 20,
-	},
-	fileFilter: (req, file, cb) => {
-		cb(undefined, true);
-	},
-	storage: multer.diskStorage({
-		filename: (req, file, cb) => {
-			cb(null, file.originalname);
-		},
-		destination: (req, file, cb) => {
-			cb(null, 'uploads/');
-		},
-	}),
-});
 const cors = require('cors');
 const participantRoutes = require('./routers/participantRoutes');
 const likersRoutes = require('./routers/likersRoutes');
 const { handleLike } = require('./controllers/likersController');
 const Participant = require('./models/Participant');
+const AWS = require('aws-sdk');
+
+// AWS S3 ayarları
+const s3 = new AWS.S3({
+	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+	region: process.env.AWS_REGION,
+});
 
 require('dotenv').config();
 
@@ -86,22 +79,33 @@ const connectToLiveStream = async (username) => {
 			const session = await mongoose.startSession();
 			session.startTransaction();
 			try {
-				const participant = await Participant.findOneAndUpdate(
+				const participant = await Participant.updateMany(
 					{ giftId: giftId },
 					{ $inc: { score: increment } },
 					{ new: true, session: session }
 				);
-
-				if (participant) {
-					console.log(
-						'Score updated:',
-						participant.score,
-						' name:',
-						participant.name
-					);
+				const logParticipants = await Participant.find(
+					{ giftId: giftId },
+					null
+				);
+				if (logParticipants.length > 0) {
+					logParticipants.forEach((participant) => {
+						console.log(
+							`Score updated: ${participant.score}  name: ${participant.name}`
+						);
+					});
 				} else {
 					console.log('İçtirakçı tapılmadı:', giftId);
 				}
+
+				// if (participant) {
+				// 	console.log(
+				// 		'Score updated:',
+				// 		participant.score,
+				// 		' name:',
+				// 		participant.name
+				// 	);
+				// }
 
 				await session.commitTransaction();
 				session.endSession();
@@ -211,63 +215,88 @@ io.on('connection', (socket) => {
 	});
 });
 
-app.get('/', function (req, res) {
-	res.sendFile(__dirname + '/view/index.html');
-});
-app.post('/participants', uploadMiddleware.single('img'), async (req, res) => {
-	// console.log(req.body);
+const uploadToS3 = (file) => {
+	if (!file || !file.buffer) {
+		throw new Error('Dosya bilgisi eksik!');
+	}
+	const params = {
+		Bucket: process.env.AWS_BUCKET_NAME,
+		Key: `${Date.now()}-${file.originalname}`,
+		Body: file.buffer,
+		ContentType: file.mimetype,
+		// ACL: 'public-read',
+	};
+
+	return s3.upload(params).promise();
+};
+app.post('/participants', upload.single('img'), async (req, res) => {
 	try {
 		const { name, isActive, giftId, gifts, duel, scoreX } = req.body;
 
-		// Resim dosyasının yolu
-		const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
-		// Katılımcıyı kaydet
+		const s3Response = await uploadToS3(req.file);
+		console.log("Dosya S3'e yüklendi:", s3Response.Location);
+
+		// Save
 		const newParticipant = new Participant({
 			name,
 			isActive: JSON.parse(isActive),
-			giftId: JSON.parse(giftId), // JSON string olarak gönderilen veriyi parse ediyoruz
+			giftId: JSON.parse(giftId),
 			gifts: JSON.parse(gifts),
 			duel: parseInt(duel),
 			scoreX: JSON.parse(scoreX),
-			img: `https://tiktok-show-back.onrender.com${imagePath}`,
+			img: s3Response.Location,
 		});
 
 		await newParticipant.save();
 
-		res
-			.status(201)
-			.json({
-				message: 'Katılımcı başarıyla eklendi!',
-				participant: newParticipant,
-			});
+		res.status(201).json({
+			message: 'İştirakçı əlavə edildi!',
+			participant: newParticipant,
+		});
 	} catch (error) {
-		console.error('Hata oluştu:', error);
-		res.status(500).json({ message: 'Katılımcı eklenirken bir hata oluştu.' });
+		console.error('Xəta:', error);
+		res.status(500).json({ message: 'İştirakçı əlavə bir edilmədi. Xəta!' });
 	}
 });
-// app.post('/upload', uploadMiddleware.single('avatar'), function (req, res) {
-// 	if (!req.file) {
-// 		return res.json({
-// 			success: false,
-// 			message: 'Dosya yuklenemedi',
-// 		});
-// 	}
-// 	// return succes
-// 	return res.json({
-// 		success: true,
-// 		message: 'Dosya yuklendi. Tebrikler...',
-// 		file: req.file,
-// 	});
-// });
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-	fs.mkdirSync(uploadDir, { recursive: true });
-	console.log('Uploads klasörü oluşturuldu.');
-}
-app.get('/uploads/:filename', function (req, res) {
-	var filename = req.params.filename;
-	res.sendFile(__dirname + '/uploads/' + filename);
+
+app.delete('/participants/:id', async (req, res) => {
+	const { id } = req.params;
+	console.log(id);
+
+	try {
+		const participant = await Participant.findById(
+			new mongoose.Types.ObjectId(id)
+		);
+		if (!participant) {
+			// Eğer katılımcı bulunamazsa, bir hata mesajı döndür
+			console.log('Katılımcı bulunamadı!');
+			return res.status(404).json({ message: 'Katılımcı bulunamadı' });
+		}
+		await Participant.findByIdAndDelete(id);
+		const imageKey = participant.img.split('.com/')[1];
+
+		// S3'ten fotoğrafı sil
+		const params = {
+			Bucket: process.env.AWS_BUCKET_NAME, // Bucket adınız
+			Key: imageKey, // Silinecek dosyanın anahtarı
+		};
+
+		s3.deleteObject(params, async (err, data) => {
+			if (err) {
+				console.error('S3 silme hatası:', err);
+				return res
+					.status(500)
+					.json({ message: 'Resim silinemedi!', error: err });
+			}
+			res
+				.status(200)
+				.json({ message: 'Resim başarıyla silindi ve güncellendi!' });
+		});
+	} catch (error) {
+		res.status(500).json({ message: 'Silme işlemi sırasında bir hata oluştu' });
+	}
 });
+
 // available gifts
 app.get('/availablegifts', (req, res) => {
 	let tiktokLiveConnectionName = new WebcastPushConnection('mr_developerh');
