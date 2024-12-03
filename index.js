@@ -98,15 +98,6 @@ const connectToLiveStream = async (username) => {
 					console.log('İçtirakçı tapılmadı:', giftId);
 				}
 
-				// if (participant) {
-				// 	console.log(
-				// 		'Score updated:',
-				// 		participant.score,
-				// 		' name:',
-				// 		participant.name
-				// 	);
-				// }
-
 				await session.commitTransaction();
 				session.endSession();
 				return; // Başarılı, fonksiyondan çık
