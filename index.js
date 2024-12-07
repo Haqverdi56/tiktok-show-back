@@ -9,6 +9,7 @@ const upload = multer({ storage });
 const fs = require('fs');
 const cors = require('cors');
 const participantRoutes = require('./routers/participantRoutes');
+const settingsRouter = require('./routers/settingsRouter');
 const addGiftUrl = require('./routers/addGiftRouter');
 const GiftUrl = require('./models/addGift');
 const likersRoutes = require('./routers/likersRoutes');
@@ -71,9 +72,10 @@ app.post('/api/disconnect', (req, res) => {
 });
 
 let tiktokLiveConnection = null;
+const sessionId = '29431c5c202de06d5cbe664134adf232';
 
 const connectToLiveStream = async (username) => {
-	tiktokLiveConnection = new WebcastPushConnection(username);
+	tiktokLiveConnection = new WebcastPushConnection(username, { sessionId });
 
 	const MAX_RETRY_COUNT = 15;
 
@@ -120,11 +122,11 @@ const connectToLiveStream = async (username) => {
 		}
 	}
 
-	tiktokLiveConnection.on('error', (err) => {
-		console.error('Error 56!', err);
-		io.emit('disconnectLive', false);
-		liveIsConnected = false;
-	});
+	// tiktokLiveConnection.on('error', (err) => {
+	// 	console.error('Error 56!', err);
+	// 	io.emit('disconnectLive', false);
+	// 	liveIsConnected = false;
+	// });
 
 	tiktokLiveConnection.on('disconnected', () => {
 		console.log('Bağlantı kesildi!!!');
@@ -155,7 +157,7 @@ const connectToLiveStream = async (username) => {
 		if (data.giftType === 1 && !data.repeatEnd) {
 			// Skip temporary gifts
 		} else {
-			io.emit('gift', data); 
+			io.emit('gift', data);
 			console.log(
 				`${data.nickname} has sent gift ${data.giftName} count:${data.diamondCount} x${data.repeatCount} giftID: ${data.giftId}`
 			);
@@ -230,7 +232,7 @@ const connectToLiveStream = async (username) => {
 // 		try {
 // 			for (const data of obj.data.gifts) {
 // 				const existingGift = await GiftUrl.findOne({ id: data.id });
-				
+
 // 				if (!existingGift) {
 // 					const giftData = new GiftUrl({
 // 						name: data.name,
@@ -348,6 +350,7 @@ app.use('/api/showlikers', likersRoutes);
 app.post('/api/connection-status', (req, res) => {
 	liveIsConnected ? res.send(true) : res.send(false);
 });
+app.use('/settings', settingsRouter);
 app.use('/', function (req, res) {
 	res.send('Welcome to my API');
 });

@@ -1,23 +1,32 @@
 const Likers = require('../models/Likers');
+const MAX_RETRY_COUNT = 15;
 
 // Beğenileri işleyip toplamayı yapan fonksiyon
 const handleLike = async (data) => {
-	try {
-		const liker = await Likers.findOneAndUpdate(
-			{ uniqueId: data.uniqueId }, // Benzersiz kimliğe göre arama
-			{
-				$setOnInsert: {
-					uniqueId: data.uniqueId,
-					nickname: data.nickname,
-					profilePictureUrl: data.profilePictureUrl,
-				},
-				$inc: { totalLikes: data.likeCount }, // Toplam beğeniyi arttırma
-			},
-			{ upsert: true, new: true } // Belge yoksa ekleme, varsa güncelleme
-		);
-	} catch (error) {
-		console.error('Error handling like:', error);
-	}
+	// for (let attempt = 0; attempt < MAX_RETRY_COUNT; attempt++) {
+	// 	const session = await mongoose.startSession();
+	// 	session.startTransaction();
+	// 	try {
+	// 		const liker = await Likers.findOneAndUpdate(
+	// 			{
+	// 				$setOnInsert: {
+	// 					uniqueId: data.uniqueId,
+	// 					nickname: data.nickname,
+	// 					profilePictureUrl: data.profilePictureUrl,
+	// 				},
+	// 				$inc: { totalLikes: data.likeCount }, // Toplam beğeniyi arttırma
+	// 			},
+	// 			{ upsert: true, new: true } // Belge yoksa ekleme, varsa güncelleme
+	// 		);
+	// 		await session.commitTransaction();
+	// 		session.endSession();
+	// 		return;
+	// 	} catch (error) {
+	// 		await session.abortTransaction();
+	// 		session.endSession();
+	// 		console.error('Error handling like:', error);
+	// 	}
+	// }
 };
 
 const getAllLikers = async (req, res) => {
