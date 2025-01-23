@@ -122,11 +122,11 @@ const connectToLiveStream = async (username) => {
 		}
 	}
 
-	// tiktokLiveConnection.on('error', (err) => {
-	// 	console.error('Error 56!', err);
-	// 	io.emit('disconnectLive', false);
-	// 	liveIsConnected = false;
-	// });
+	tiktokLiveConnection.on('error', (err) => {
+		console.error('Error 56!', err);
+		io.emit('disconnectLive', false);
+		liveIsConnected = false;
+	});
 
 	tiktokLiveConnection.on('disconnected', () => {
 		console.log('Bağlantı kesildi!!!');
@@ -186,7 +186,7 @@ const connectToLiveStream = async (username) => {
 	tiktokLiveConnection
 		.connect()
 		.then((state) => {
-			console.info(`Oda Kimliği ${state.roomId} ile bağlandı`);
+			console.info(`RoomId connected with ${state.roomId}`);
 			// res.send(state.isConnected);
 			io.emit('connectStatus', true);
 			io.emit('disconnectLive', true);
@@ -194,7 +194,7 @@ const connectToLiveStream = async (username) => {
 			liveIsConnected = true;
 		})
 		.catch((err) => {
-			console.error('Bağlantı başarısız', err);
+			console.error('Bağlantı başarısızzz', err);
 			// res.send(err);
 			liveIsConnected = false;
 		});
@@ -258,7 +258,7 @@ app.post('/api/connect', async (req, res) => {
 io.on('connection', (socket) => {
 	// console.log('Tarayıcı bağlandı');
 	socket.on('message', (message) => {
-		console.log('Tarayıcıdan gelen mesaj:', message);
+		console.log('Message from browser:', message);
 	});
 });
 
@@ -281,7 +281,7 @@ app.post('/participants', upload.single('img'), async (req, res) => {
 		const { name, isActive, giftId, gifts, duel, scoreX } = req.body;
 
 		const s3Response = await uploadToS3(req.file);
-		console.log("Dosya S3'e yüklendi:", s3Response.Location);
+		console.log("File upload to S3:", s3Response.Location);
 
 		// Save
 		const newParticipant = new Participant({
@@ -316,8 +316,8 @@ app.delete('/participants/:id', async (req, res) => {
 		);
 		if (!participant) {
 			// Eğer katılımcı bulunamazsa, bir hata mesajı döndür
-			console.log('Katılımcı bulunamadı!');
-			return res.status(404).json({ message: 'Katılımcı bulunamadı' });
+			console.log('İştirakçı tapılmadı!');
+			return res.status(404).json({ message: 'İştirakçı tapılmadı' });
 		}
 		await Participant.findByIdAndDelete(id);
 		const imageKey = participant.img.split('.com/')[1];
@@ -330,17 +330,17 @@ app.delete('/participants/:id', async (req, res) => {
 
 		s3.deleteObject(params, async (err, data) => {
 			if (err) {
-				console.error('S3 silme hatası:', err);
+				console.error('S3 silmə xətası:', err);
 				return res
 					.status(500)
-					.json({ message: 'Resim silinemedi!', error: err });
+					.json({ message: 'Foto silinmədi!', error: err });
 			}
 			res
 				.status(200)
-				.json({ message: 'Resim başarıyla silindi ve güncellendi!' });
+				.json({ message: 'Foto silindi ve güncəlləndi!' });
 		});
 	} catch (error) {
-		res.status(500).json({ message: 'Silme işlemi sırasında bir hata oluştu' });
+		res.status(500).json({ message: 'Silmə prosose zamanı xəta yarandı!' });
 	}
 });
 
