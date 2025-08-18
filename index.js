@@ -11,13 +11,18 @@ const cors = require('cors');
 const participantRoutes = require('./routers/participantRoutes');
 const settingsRouter = require('./routers/settingsRouter');
 const addGiftUrl = require('./routers/addGiftRouter');
-const GiftUrl = require('./models/addGift');
 const likersRoutes = require('./routers/likersRoutes');
+const countdownRoutes = require('./routers/countdownRoutes');
+
 const { handleLike } = require('./controllers/likersController');
+
+const GiftUrl = require('./models/addGift');
 const Participant = require('./models/Participant');
 const AWS = require('aws-sdk');
 
 var request = require('request');
+const Countdown = require('./models/Countdown');
+const Settings = require('./models/setttings');
 
 // AWS S3 ayarları
 const s3 = new AWS.S3({
@@ -84,20 +89,11 @@ const connectToLiveStream = async (username) => {
 			const session = await mongoose.startSession();
 			session.startTransaction();
 			try {
-				const participant = await Participant.updateMany(
-					{ giftId: giftId },
-					{ $inc: { score: increment } },
-					{ new: true, session: session }
-				);
-				const logParticipants = await Participant.find(
-					{ giftId: giftId },
-					null
-				);
+				const participant = await Participant.updateMany({ giftId: giftId }, { $inc: { score: increment } }, { new: true, session: session });
+				const logParticipants = await Participant.find({ giftId: giftId }, null);
 				if (logParticipants.length > 0) {
 					logParticipants.forEach((participant) => {
-						console.log(
-							`Score updated: ${participant.score}  name: ${participant.name}`
-						);
+						console.log(`Score updated: ${participant.score}  name: ${participant.name}`);
 					});
 				} else {
 					console.log('İçtirakçı tapılmadı:', giftId);
@@ -110,14 +106,10 @@ const connectToLiveStream = async (username) => {
 				await session.abortTransaction();
 				session.endSession();
 				if (attempt === MAX_RETRY_COUNT - 1) {
-					console.error(
-						'Error updating participant score after multiple attempts:'
-					);
+					console.error('Error updating participant score after multiple attempts:');
 					// throw error; // Maksimum deneme sayısına ulaşıldı, hatayı tekrar fırlat
 				}
-				console.warn(
-					`Retrying update for participant score, attempt ${attempt + 1}`
-				);
+				console.warn(`Retrying update for participant score, attempt ${attempt + 1}`);
 			}
 		}
 	}
@@ -158,10 +150,15 @@ const connectToLiveStream = async (username) => {
 			// Skip temporary gifts
 		} else {
 			io.emit('gift', data);
-			console.log(
-				`${data.nickname} has sent gift ${data.giftName} count:${data.diamondCount} x${data.repeatCount} giftID: ${data.giftId}`
-			);
+			console.log(`${data.nickname} has sent gift ${data.giftName} count:${data.diamondCount} x${data.repeatCount} giftID: ${data.giftId}`);
 			// console.log(data);
+			const increment = data.diamondCount * data.repeatCount;
+			await Settings.findOneAndUpdate(
+				{}, // defaultda ilk sənədi götür
+				{ $inc: { diamondAllDay: increment } }, // artırırıq
+				{ new: true, upsert: true } // sənəd yoxdursa yaratsın
+			);
+
 			if (data.giftId == 6834) {
 				console.log(data);
 			}
@@ -254,11 +251,22 @@ app.post('/api/connect', async (req, res) => {
 	await connectToLiveStream(tiktokUsername);
 });
 
+let paused = false; // pause/resume üçün state
+
 // Socket.IO bağlantılarını dinle
 io.on('connection', (socket) => {
 	// console.log('Tarayıcı bağlandı');
 	socket.on('message', (message) => {
 		console.log('Message from browser:', message);
+	});
+
+	// Pause və Resume eventləri
+	socket.on('pauseCountdown', () => {
+		paused = true;
+	});
+
+	socket.on('resumeCountdown', () => {
+		paused = false;
 	});
 });
 
@@ -281,7 +289,7 @@ app.post('/participants', upload.single('img'), async (req, res) => {
 		const { name, isActive, giftId, gifts, duel, scoreX } = req.body;
 
 		const s3Response = await uploadToS3(req.file);
-		console.log("File upload to S3:", s3Response.Location);
+		console.log('File upload to S3:', s3Response.Location);
 
 		// Save
 		const newParticipant = new Participant({
@@ -311,9 +319,7 @@ app.delete('/participants/:id', async (req, res) => {
 	console.log(id);
 
 	try {
-		const participant = await Participant.findById(
-			new mongoose.Types.ObjectId(id)
-		);
+		const participant = await Participant.findById(new mongoose.Types.ObjectId(id));
 		if (!participant) {
 			// Eğer katılımcı bulunamazsa, bir hata mesajı döndür
 			console.log('İştirakçı tapılmadı!');
@@ -331,19 +337,32 @@ app.delete('/participants/:id', async (req, res) => {
 		s3.deleteObject(params, async (err, data) => {
 			if (err) {
 				console.error('S3 silmə xətası:', err);
-				return res
-					.status(500)
-					.json({ message: 'Foto silinmədi!', error: err });
+				return res.status(500).json({ message: 'Foto silinmədi!', error: err });
 			}
-			res
-				.status(200)
-				.json({ message: 'Foto silindi ve güncəlləndi!' });
+			res.status(200).json({ message: 'Foto silindi ve güncəlləndi!' });
 		});
 	} catch (error) {
 		res.status(500).json({ message: 'Silmə prosose zamanı xəta yarandı!' });
 	}
 });
 
+// ===================
+// Realtime countdown
+// ===================
+
+// Interval
+setInterval(async () => {
+	if (paused) return; // dayandırılıbsa, heç nə etmir
+
+	let countdown = await Countdown.findOne();
+	if (countdown && countdown.seconds > 0) {
+		countdown.seconds -= 1;
+		await countdown.save();
+		io.emit('countdownUpdate', countdown.seconds); // frontend-ə push
+	}
+}, 1000);
+
+app.use('/api/countdown', countdownRoutes);
 app.use('/giftUrl', addGiftUrl);
 app.use('/api', participantRoutes);
 app.use('/api/showlikers', likersRoutes);
