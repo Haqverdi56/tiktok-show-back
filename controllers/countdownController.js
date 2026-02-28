@@ -3,8 +3,6 @@ const Countdown = require('../models/Countdown');
 
 // Admin paneldən dəyəri POST etmək (dəqiqə → saniyə)
 const setCountdown = async (req, res) => {
-    console.log(req.body);
-    
 	try {
 		const { minutes } = req.body;
 		const seconds = minutes * 60;
